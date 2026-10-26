@@ -61,7 +61,7 @@ class ClinicManager:
             newly_closed_tasks = [t for t in tasks if t.status == 'Closed']
 
             # Question: What is a potential performance issue with this code ?
-            # Answered in CHANGES.md -> "Production-readiness status" (#1):
+            # Answered in CHANGES.md -> "Deferred" (Performance):
             # returns every Open task every batch, including untouched
             # patients. Fine at the stated scale; fix is to scope
             # get_open_tasks to affected patient_ids. Deferred.

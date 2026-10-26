@@ -16,7 +16,7 @@ class TaskService:
     def updates_tasks(self, tasks: list[PatientTask]):
         # Question : This code is the result of a limitation by TinyDB. What is the issue and what feature
         # would a more complete DB solution offer ?
-        # Answered in CHANGES.md -> "Production-readiness status" (#2): TinyDB
+        # Answered in CHANGES.md -> "Deferred" (Transactions): TinyDB
         # has no batch-upsert and no transactions, so we loop row-by-row with
         # no atomicity. A real DB offers bulk upsert (Mongo bulkWrite /
         # Postgres INSERT ... ON CONFLICT) inside a transaction.
