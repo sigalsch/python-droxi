@@ -1,27 +1,12 @@
 
-import pytest
 from tinydb import where
 from main import load_all_inputs
 import db.db_tinydb as db
 from clinic_manager import ClinicManager
-from .config import generate_requests
 
 
-@pytest.fixture(autouse=True)
-def init_db():
-    db.clinic.drop_tables()
-
-    if generate_requests:
-        db.init_db()
-
-        closed_pat_requests = db.patient_requests.search(
-            where('status') == "Closed")
-        assert len(closed_pat_requests) == 100, "Db init with 100 closed worked"
-
-        open_pat_requests = db.patient_requests.search(
-            where('status') == "Open")
-        assert len(
-            open_pat_requests) == 0, "DB has open request before processing"
+# The autouse ``init_db`` fixture lives in tests/conftest.py and gives every
+# test a fresh in-memory TinyDB; see CHANGES.md.
 
 
 def test_task_processing():

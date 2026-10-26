@@ -16,6 +16,10 @@ class TaskService:
     def updates_tasks(self, tasks: list[PatientTask]):
         # Question : This code is the result of a limitation by TinyDB. What is the issue and what feature
         # would a more complete DB solution offer ?
+        # Answered in CHANGES.md -> "Production-readiness status" (#2): TinyDB
+        # has no batch-upsert and no transactions, so we loop row-by-row with
+        # no atomicity. A real DB offers bulk upsert (Mongo bulkWrite /
+        # Postgres INSERT ... ON CONFLICT) inside a transaction.
         for task in tasks:
             db.tasks.upsert(task.model_dump(), Task.id == task.id)
 

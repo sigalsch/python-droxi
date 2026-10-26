@@ -1,16 +1,16 @@
+import logging
 from collections import defaultdict
 
-from uuid import uuid4
-
 from tinydb import where
+
+import db.db_tinydb as db
 from models.patient_task import PatientTask
 from models.patient_request import PatientRequest
+from observability import UpdateStats, format_kv
 from .abstract_patient_request_service import PatientRequestService
-import db.db_tinydb as db
 
-from operator import attrgetter
 
-task_date_getter = attrgetter('updated_date')
+log = logging.getLogger(__name__)
 
 
 class PerPatientRequestService(PatientRequestService):
@@ -24,23 +24,43 @@ class PerPatientRequestService(PatientRequestService):
 
         return PatientRequest(**result_dict)
 
-    def update_requests(self, tasks: list[PatientTask]):
+    def update_requests(self, tasks: list[PatientTask]) -> UpdateStats:
+        stats = UpdateStats()
 
-        grouped_by_patent: dict[str, list[PatientTask]] = defaultdict(list)
+        grouped_by_patient: dict[str, list[PatientTask]] = defaultdict(list)
 
         for task in tasks:
-            grouped_by_patent[task.patient_id].append(task)
+            grouped_by_patient[task.patient_id].append(task)
 
-        for patient_id, patient_tasks in grouped_by_patent.items():
+        for patient_id, patient_tasks in grouped_by_patient.items():
+            existing_request = self.get_open_patient_request(patient_id)
+            new_request = self.to_patient_request(patient_id, patient_tasks)
 
-            existing_req: PatientRequest = self.get_open_patient_request(
-                patient_id)
-
-            pat_req = self.to_patient_request(patient_id, patient_tasks)
-
-            if not existing_req:
-                db.patient_requests.insert(pat_req.model_dump())
+            if existing_request is None:
+                db.patient_requests.insert(new_request.model_dump())
+                stats.requests_created += 1
+                log.debug(
+                    "inserted request %s",
+                    format_kv(
+                        request_id=new_request.id,
+                        patient_id=patient_id,
+                        tasks=len(patient_tasks),
+                    ),
+                )
             else:
-                pat_req.id = existing_req.id
+                new_request.id = existing_request.id
                 db.patient_requests.update(
-                    pat_req.model_dump(), where('id') == existing_req.id)
+                    new_request.model_dump(),
+                    where('id') == existing_request.id,
+                )
+                stats.requests_updated += 1
+                log.debug(
+                    "updated request %s",
+                    format_kv(
+                        request_id=existing_request.id,
+                        patient_id=patient_id,
+                        tasks=len(patient_tasks),
+                    ),
+                )
+
+        return stats
